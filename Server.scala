@@ -1,5 +1,7 @@
 import scala.actors.Actor
 import scala.actors.Actor._
+import scala.io.Source
+
 import java.net._
 import java.io._
 import java.text.SimpleDateFormat
@@ -17,9 +19,16 @@ class Response() {
     ("|" + this.headers.mkString("\n|")+"\n|\n|").stripMargin
   }
 
+  def setContentLengthHeader() {
+    this.addHeader("Content-Length: " + this.content.length)
+  }
+
+  def appendContent(line: String) {
+    this.content += line
+  }
+
   def addContent(content: String) {
     this.content = content
-    this.addHeader("Content-Length: " + content.length)
   }
 
   def getContent(): String = {
@@ -30,6 +39,8 @@ class Response() {
 case class Connection(socket: Socket)
 
 class Handler extends Actor {
+  val path = "/var/www/"
+
   def act() {
     loop {
       react {
@@ -62,6 +73,20 @@ class Handler extends Actor {
   private val Get = "^(GET /.*)$".r
   private val Head = "^(HEAD /.*)$".r
 
+  def getFullPath(req_line: String): String = {
+    var postfix = ""
+    var uri = req_line.split(" ")(1)
+    if (uri.endsWith("/")) {
+      postfix = "index.html"
+    }
+    if (uri.startsWith("/")) {
+      uri = uri substring 1
+    }
+    println(uri)
+    println((path + uri + postfix))
+    (path + uri + postfix)
+  }
+
   def read(reader: LineNumberReader, writer: Writer, res: Response): Unit = {
     val line = reader.readLine()
     if (line != null) {
@@ -70,8 +95,11 @@ class Handler extends Actor {
       
       trimmed match {
         case Get(s) =>
-	  //move to static
-	  res addContent "<html><body><h1>It works in Scala! Hooray.</h1></body></html>"
+	  
+	  
+	  Source.fromFile(this.getFullPath(trimmed)).getLines.foreach(res.appendContent)
+	  res.setContentLengthHeader()
+	  //res addContent "<html><body><h1>It works in Scala! Hooray.</h1></body></html>"
           writer.write(res.getHeaders())
           writer.write(res.getContent())
           writer.flush()
