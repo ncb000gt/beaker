@@ -95,11 +95,8 @@ class Handler extends Actor {
       
       trimmed match {
         case Get(s) =>
-	  
-	  
 	  Source.fromFile(this.getFullPath(trimmed)).getLines.foreach(res.appendContent)
 	  res.setContentLengthHeader()
-	  //res addContent "<html><body><h1>It works in Scala! Hooray.</h1></body></html>"
           writer.write(res.getHeaders())
           writer.write(res.getContent())
           writer.flush()
