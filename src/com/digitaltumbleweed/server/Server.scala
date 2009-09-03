@@ -29,10 +29,9 @@ class Handler extends Actor {
 
   def handle(socket: Socket) {
     val os = socket.getOutputStream
-    val writer = new OutputStreamWriter(os)
     val is = socket.getInputStream
     val reader = new LineNumberReader(new InputStreamReader(is))
-    read(reader, writer)
+    read(reader, os)
   }
 
   private val Get = "^(GET /.*)$".r
@@ -51,7 +50,7 @@ class Handler extends Actor {
     (path + uri + postfix)
   }
 
-  def read(reader: LineNumberReader, writer: Writer): Unit = {
+  def read(reader: LineNumberReader, os: OutputStream): Unit = {
     val line = reader.readLine()
     if (line != null) {
       val trimmed = line.trim
@@ -70,14 +69,15 @@ class Handler extends Actor {
 
       trimmed match {
         case Get(s) =>
-	  writer.write(res.generateResponse())
-          writer.flush()
+	  res write os
+          os flush
         case Head(s) =>
-	  writer.write(res.getHeaders())
-	  writer.flush()
+	  res writeHeaders os
+	  os flush
         case _ =>
 	  println("Got unknown command: \"" + trimmed + "\"")
       }
+      os close
     }
   }
 }

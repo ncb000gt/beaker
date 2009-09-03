@@ -18,11 +18,9 @@
   </path>
   
   <path id="build.classpath">
-    <pathelement location="${build.dir}"   />
-    <path refid="scala.classpath"/>
-  </path>
-
-  <path id="project.classpath">
+    <fileset dir="${lib.dir}">
+      <include name="**/*.jar"/>
+    </fileset>
     <path refid="scala.classpath"/>
     <pathelement location="${build.dir}"/>
   </path>
