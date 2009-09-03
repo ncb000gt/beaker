@@ -1,42 +1,13 @@
 package com.digitaltumbleweed.server
 
+import scala.Null
 import scala.actors.Actor
 import scala.actors.Actor._
-import scala.io.Source
+
+import com.digitaltumbleweed.http._
 
 import java.net._
 import java.io._
-import java.text.SimpleDateFormat
-import java.util.Date
-
-class Response() {
-  private var headers: List[String] = List()
-  private var content = new String
-
-  def addHeader(header: String) {
-    this.headers += header //deprecated but :: doesn't appear to be working...
-  }
-
-  def getHeaders(): String = {
-    ("|" + this.headers.mkString("\n|")+"\n|\n|").stripMargin
-  }
-
-  def setContentLengthHeader() {
-    this.addHeader("Content-Length: " + this.content.length)
-  }
-
-  def appendContent(line: String) {
-    this.content += line
-  }
-
-  def addContent(content: String) {
-    this.content = content
-  }
-
-  def getContent(): String = {
-    this.content
-  }
-}
 
 case class Connection(socket: Socket)
 
@@ -57,19 +28,11 @@ class Handler extends Actor {
   }
 
   def handle(socket: Socket) {
-    val res = new Response()
-    res addHeader "HTTP/1.1 200 OK"
-    res addHeader "Server: Beaker"
-    res addHeader "Accept-Ranges: bytes"
-    res addHeader "Connection: close"
-    res addHeader "Content-Type: text/html"
-    res addHeader "Date: " + new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z").format(new Date())
-    
     val os = socket.getOutputStream
     val writer = new OutputStreamWriter(os)
     val is = socket.getInputStream
     val reader = new LineNumberReader(new InputStreamReader(is))
-    read(reader, writer, res)
+    read(reader, writer)
   }
 
   private val Get = "^(GET /.*)$".r
@@ -84,26 +47,33 @@ class Handler extends Actor {
     if (uri.startsWith("/")) {
       uri = uri substring 1
     }
-    println(uri)
-    println((path + uri + postfix))
+
     (path + uri + postfix)
   }
 
-  def read(reader: LineNumberReader, writer: Writer, res: Response): Unit = {
+  def read(reader: LineNumberReader, writer: Writer): Unit = {
     val line = reader.readLine()
     if (line != null) {
       val trimmed = line.trim
-      println("Got line: \"" + trimmed + "\"")
+      var res = new Response()
+      val path = this.getFullPath(trimmed)
+      val file = new File(path)
+      if (!file.exists()) {
+	res = new NotFound(path)
+      } else {
+	res = new OK(path, file)
+      }
       
+      if (!res.isInstanceOf[Response]) {
+	res = new InternalServerError()
+      }
+
       trimmed match {
         case Get(s) =>
-	  Source.fromFile(this.getFullPath(trimmed)).getLines.foreach(res.appendContent)
-	  res.setContentLengthHeader()
-          writer.write(res.getHeaders())
-          writer.write(res.getContent())
+	  writer.write(res.generateResponse())
           writer.flush()
         case Head(s) =>
-          writer.write(res.getHeaders())
+	  writer.write(res.getHeaders())
 	  writer.flush()
         case _ =>
 	  println("Got unknown command: \"" + trimmed + "\"")
