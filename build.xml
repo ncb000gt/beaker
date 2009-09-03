@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<project name="beaker" default="all" basedir=".">
+  <property name="project" value="Beaker"/>
+  <property name="home.dir" value="."/>
+  <property name="build.dir" value="${home.dir}/build"/>
+  <property name="dist.dir" value="${home.dir}/dist"/>
+  <property name="lib.dir" value="${home.dir}/libs"/>
+  <property name="src.dir" value="${home.dir}/src"/>
+  <property name="docs.dir" value="${home.dir}/docs"/>
+  <property name="scala.home" value="/usr/share/scala"/>
+  <property name="scala-compiler.jar" value="${scala.home}/lib/scala-compiler.jar"/>
+  <property name="scala-library.jar" value="${scala.home}/lib/scala-library.jar"/>
+  <property environment="env"/>
+  
+  <path id="scala.classpath">
+    <pathelement location="${scala-compiler.jar}"/>
+    <pathelement location="${scala-library.jar}"/>
+  </path>
+  
+  <path id="build.classpath">
+    <pathelement location="${build.dir}"   />
+    <path refid="scala.classpath"/>
+  </path>
+
+  <path id="project.classpath">
+    <path refid="scala.classpath"/>
+    <pathelement location="${build.dir}"/>
+  </path>
+
+  <taskdef resource="scala/tools/ant/antlib.xml">
+    <classpath refid="scala.classpath"/>
+  </taskdef>
+  
+  <target name="init">
+    <mkdir dir="${build.dir}"/>
+  </target>
+  
+  <target name="clean">
+    <delete dir="${build.dir}"/>
+    <delete dir="${docs.dir}"/>
+    <delete dir="${dist.dir}"/>
+  </target>
+
+  <target name="build" depends="clean,init">
+    <scalac srcdir="${src.dir}"
+	    destdir="${build.dir}"
+	    classpathref="build.classpath"
+	    force="changed">
+      <include name="**/*.scala"   />
+    </scalac>
+  </target>
+  
+  <target name="test">
+  </target>
+
+  <target name="docs">
+    <mkdir dir="${docs.dir}"   />
+    <scaladoc sourcepath="${src.dir}" 
+	      destdir="${docs.dir}"
+	      deprecation="yes"
+	      unchecked="yes"
+	      classpathref="classpath">
+      <include name="${src.dir}/**/*.scala"   />
+    </scaladoc>
+  </target>
+</project>
