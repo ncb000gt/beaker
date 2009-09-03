@@ -1,3 +1,5 @@
+package com.digitaltumbleweed.server
+
 import scala.actors.Actor
 import scala.actors.Actor._
 import scala.io.Source
